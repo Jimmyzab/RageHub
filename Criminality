@@ -1,0 +1,85 @@
+local player = game.Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- Укажите часть тела, на которую будет наводиться камера (например, "Head", "Torso", "Left Arm" и т.д.)
+local AIMING_PART = "Head" -- Измените на нужную часть тела
+
+-- Функция для наведения камеры на часть тела
+local function aimAtPart(targetPart)
+    if not targetPart then return end
+
+    -- Получаем позицию части тела
+    local targetPosition = targetPart.Position
+
+    -- Направляем камеру на часть тела
+    camera.CFrame = CFrame.new(camera.CFrame.Position, targetPosition)
+end
+
+-- Функция для поиска ближайшего игрока
+local function findNearestPlayer()
+    local nearestPlayer = nil
+    local nearestDistance = math.huge -- Начинаем с максимально возможного расстояния
+
+    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+        -- Проверяем, что игрок не мы сами и что у него есть персонаж
+        if otherPlayer ~= player and otherPlayer.Character then
+            local targetPart = otherPlayer.Character:FindFirstChild(AIMING_PART)
+            local targetHumanoid = otherPlayer.Character:FindFirstChild("Humanoid")
+
+            -- Проверяем, существует ли часть тела и здоровье больше 0
+            if targetPart and targetHumanoid and targetHumanoid.Health > 0 then
+                -- Вычисляем расстояние до игрока
+                local distance = (targetPart.Position - player.Character.PrimaryPart.Position).Magnitude
+
+                -- Если это ближайший игрок, обновляем данные
+                if distance < nearestDistance then
+                    nearestDistance = distance
+                    nearestPlayer = otherPlayer
+                end
+            end
+        end
+    end
+
+    return nearestPlayer
+end
+
+-- Основной цикл
+while true do
+    -- Находим ближайшего игрока
+    local nearestPlayer = findNearestPlayer()
+
+    -- Если ближайший игрок найден
+    if nearestPlayer and nearestPlayer.Character then
+        local targetPart = nearestPlayer.Character:FindFirstChild(AIMING_PART)
+        local targetHumanoid = nearestPlayer.Character:FindFirstChild("Humanoid")
+
+        if targetPart and targetHumanoid and targetHumanoid.Health > 0 then
+            print("Наводим камеру на " .. AIMING_PART .. " ближайшего игрока " .. nearestPlayer.Name)
+
+            -- Следим за целью, пока её здоровье не упадет до 0 или меньше
+            while nearestPlayer and nearestPlayer.Character and targetHumanoid and targetHumanoid.Health > 0 do
+                -- Проверяем, есть ли более близкий игрок
+                local newNearestPlayer = findNearestPlayer()
+                if newNearestPlayer and newNearestPlayer ~= nearestPlayer then
+                    nearestPlayer = newNearestPlayer
+                    targetPart = nearestPlayer.Character:FindFirstChild(AIMING_PART)
+                    targetHumanoid = nearestPlayer.Character:FindFirstChild("Humanoid")
+                    print("Переключаемся на более близкого игрока: " .. nearestPlayer.Name)
+                end
+
+                -- Наводим камеру на часть тела
+                if targetPart then
+                    aimAtPart(targetPart)
+                else
+                    break -- Прерываем, если часть тела больше не существует
+                end
+
+                task.wait() -- Используем task.wait() для минимальной задержки
+            end
+
+            print("Игрок " .. nearestPlayer.Name .. " больше не является целью.")
+        end
+    end
+
+    task.wait() -- Используем task.wait() для минимальной задержки
+end
