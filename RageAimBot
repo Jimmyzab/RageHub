@@ -4,6 +4,9 @@ local camera = workspace.CurrentCamera
 -- Укажите часть тела, на которую будет наводиться камера (например, "Head", "Torso", "Left Arm" и т.д.)
 local AIMING_PART = "Head" -- Измените на нужную часть тела
 
+-- Флаг для управления выполнением скрипта
+local scriptRunning = true
+
 -- Функция для наведения камеры на часть тела
 local function aimAtPart(targetPart)
     if not targetPart then return end
@@ -43,8 +46,23 @@ local function findNearestPlayer()
     return nearestPlayer
 end
 
+-- Функция для остановки скрипта
+local function stopScript()
+    scriptRunning = false
+    print("Скрипт выключен.")
+end
+
+-- Подключаемся к UserInputService для отслеживания нажатия клавиш
+local UserInputService = game:GetService("UserInputService")
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- Проверяем, что нажат правый Alt (KeyCode.RightAlt)
+    if input.KeyCode == Enum.KeyCode.RightAlt and not gameProcessed then
+        stopScript()
+    end
+end)
+
 -- Основной цикл
-while true do
+while scriptRunning do
     -- Находим ближайшего игрока
     local nearestPlayer = findNearestPlayer()
 
@@ -57,7 +75,7 @@ while true do
             print("Наводим камеру на " .. AIMING_PART .. " ближайшего игрока " .. nearestPlayer.Name)
 
             -- Следим за целью, пока её здоровье не упадет до 0 или меньше
-            while nearestPlayer and nearestPlayer.Character and targetHumanoid and targetHumanoid.Health > 0 do
+            while scriptRunning and nearestPlayer and nearestPlayer.Character and targetHumanoid and targetHumanoid.Health > 0 do
                 -- Проверяем, есть ли более близкий игрок
                 local newNearestPlayer = findNearestPlayer()
                 if newNearestPlayer and newNearestPlayer ~= nearestPlayer then
