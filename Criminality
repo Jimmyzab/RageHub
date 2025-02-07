@@ -5,7 +5,7 @@ local camera = workspace.CurrentCamera
 local AIMING_PART = "Head" -- Измените на нужную часть тела
 
 -- Флаг для управления выполнением скрипта
-local scriptRunning = true
+local scriptRunning = false
 
 -- Функция для наведения камеры на часть тела
 local function aimAtPart(targetPart)
@@ -46,55 +46,62 @@ local function findNearestPlayer()
     return nearestPlayer
 end
 
--- Функция для остановки скрипта
-local function stopScript()
-    scriptRunning = false
-    print("Скрипт выключен.")
+-- Функция для переключения состояния скрипта
+local function toggleScript()
+    scriptRunning = not scriptRunning
+    if scriptRunning then
+        print("Скрипт включен.")
+    else
+        print("Скрипт выключен.")
+    end
 end
 
--- Назначаем горячую клавишу для выключения скрипта (например, клавиша "F")
+-- Подключаемся к UserInputService для отслеживания нажатия клавиш
 local UserInputService = game:GetService("UserInputService")
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- Проверяем, что нажата клавиша B (KeyCode.B)
     if input.KeyCode == Enum.KeyCode.B and not gameProcessed then
-        stopScript()
+        toggleScript()
     end
 end)
 
 -- Основной цикл
-while scriptRunning do
-    -- Находим ближайшего игрока
-    local nearestPlayer = findNearestPlayer()
+while true do
+    if scriptRunning then
+        -- Находим ближайшего игрока
+        local nearestPlayer = findNearestPlayer()
 
-    -- Если ближайший игрок найден
-    if nearestPlayer and nearestPlayer.Character then
-        local targetPart = nearestPlayer.Character:FindFirstChild(AIMING_PART)
-        local targetHumanoid = nearestPlayer.Character:FindFirstChild("Humanoid")
+        -- Если ближайший игрок найден
+        if nearestPlayer and nearestPlayer.Character then
+            local targetPart = nearestPlayer.Character:FindFirstChild(AIMING_PART)
+            local targetHumanoid = nearestPlayer.Character:FindFirstChild("Humanoid")
 
-        if targetPart and targetHumanoid and targetHumanoid.Health > 0 then
-            print("Наводим камеру на " .. AIMING_PART .. " ближайшего игрока " .. nearestPlayer.Name)
+            if targetPart and targetHumanoid and targetHumanoid.Health > 0 then
+                print("Наводим камеру на " .. AIMING_PART .. " ближайшего игрока " .. nearestPlayer.Name)
 
-            -- Следим за целью, пока её здоровье не упадет до 0 или меньше
-            while scriptRunning and nearestPlayer and nearestPlayer.Character and targetHumanoid and targetHumanoid.Health > 0 do
-                -- Проверяем, есть ли более близкий игрок
-                local newNearestPlayer = findNearestPlayer()
-                if newNearestPlayer and newNearestPlayer ~= nearestPlayer then
-                    nearestPlayer = newNearestPlayer
-                    targetPart = nearestPlayer.Character:FindFirstChild(AIMING_PART)
-                    targetHumanoid = nearestPlayer.Character:FindFirstChild("Humanoid")
-                    print("Переключаемся на более близкого игрока: " .. nearestPlayer.Name)
+                -- Следим за целью, пока её здоровье не упадет до 0 или меньше
+                while scriptRunning and nearestPlayer and nearestPlayer.Character and targetHumanoid and targetHumanoid.Health > 0 do
+                    -- Проверяем, есть ли более близкий игрок
+                    local newNearestPlayer = findNearestPlayer()
+                    if newNearestPlayer and newNearestPlayer ~= nearestPlayer then
+                        nearestPlayer = newNearestPlayer
+                        targetPart = nearestPlayer.Character:FindFirstChild(AIMING_PART)
+                        targetHumanoid = nearestPlayer.Character:FindFirstChild("Humanoid")
+                        print("Переключаемся на более близкого игрока: " .. nearestPlayer.Name)
+                    end
+
+                    -- Наводим камеру на часть тела
+                    if targetPart then
+                        aimAtPart(targetPart)
+                    else
+                        break -- Прерываем, если часть тела больше не существует
+                    end
+
+                    task.wait() -- Используем task.wait() для минимальной задержки
                 end
 
-                -- Наводим камеру на часть тела
-                if targetPart then
-                    aimAtPart(targetPart)
-                else
-                    break -- Прерываем, если часть тела больше не существует
-                end
-
-                task.wait() -- Используем task.wait() для минимальной задержки
+                print("Игрок " .. nearestPlayer.Name .. " больше не является целью.")
             end
-
-            print("Игрок " .. nearestPlayer.Name .. " больше не является целью.")
         end
     end
 
