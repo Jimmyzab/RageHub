@@ -9,6 +9,30 @@ local AIMING_PART = "Head" -- Измените на нужную часть те
 -- Флаг для управления выполнением скрипта
 local scriptRunning = true
 
+-- Функция для изменения материала и цвета врагов
+local function setEnemiesForceFieldAndColor()
+    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+        -- Проверяем, что игрок не мы сами и не из нашей команды
+        if otherPlayer ~= player and otherPlayer.Team ~= player.Team and otherPlayer.Character then
+            for _, part in ipairs(otherPlayer.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Material = Enum.Material.ForceField -- Меняем материал на ForceField
+                    part.Color = Color3.new(1, 0, 0) -- Красим в красный цвет
+                end
+            end
+        end
+    end
+end
+
+-- Функция для изменения прозрачности всех объектов на карте
+local function setMapTransparency(transparency)
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj:IsDescendantOf(player.Character) then
+            obj.Transparency = transparency
+        end
+    end
+end
+
 -- Функция для наведения камеры на часть тела
 local function aimAtPart(targetPart)
     if not targetPart then return end
@@ -99,6 +123,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         stopScript()
     end
 end)
+
+-- Изменяем материал и цвет врагов
+setEnemiesForceFieldAndColor()
+
+-- Делаем все объекты на карте полупрозрачными
+setMapTransparency(0.2)
 
 -- Основной цикл
 while scriptRunning do
