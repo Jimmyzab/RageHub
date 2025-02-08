@@ -1,5 +1,7 @@
 local player = game.Players.LocalPlayer
 local camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- Укажите часть тела, на которую будет наводиться камера (например, "Head", "Torso", "Left Arm" и т.д.)
 local AIMING_PART = "Head" -- Измените на нужную часть тела
@@ -16,6 +18,44 @@ local function aimAtPart(targetPart)
 
     -- Направляем камеру на часть тела
     camera.CFrame = CFrame.new(camera.CFrame.Position, targetPosition)
+end
+
+-- Функция для проверки видимости цели
+local function isTargetVisible(targetPart)
+    if not targetPart then return false end
+
+    -- Вычисляем направление от камеры к цели
+    local direction = (targetPart.Position - camera.CFrame.Position).Unit
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {player.Character} -- Игнорируем персонажа игрока
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+    -- Выполняем Raycast
+    local raycastResult = workspace:Raycast(camera.CFrame.Position, direction * 1000, raycastParams)
+
+    -- Если Raycast попал в цель, цель видна
+    if raycastResult and raycastResult.Instance:IsDescendantOf(targetPart.Parent) then
+        return true
+    end
+
+    return false
+end
+
+-- Функция для проверки, наведён ли прицел на голову
+local function isAimingAtHead(targetPart)
+    if not targetPart then return false end
+
+    -- Вычисляем направление от камеры к цели
+    local direction = (targetPart.Position - camera.CFrame.Position).Unit
+    local ray = Ray.new(camera.CFrame.Position, direction * 1000)
+
+    -- Проверяем, пересекает ли луч голову
+    local hit, position = workspace:FindPartOnRay(ray, player.Character)
+    if hit and hit == targetPart then
+        return true
+    end
+
+    return false
 end
 
 -- Функция для поиска ближайшего игрока
@@ -53,7 +93,6 @@ local function stopScript()
 end
 
 -- Подключаемся к UserInputService для отслеживания нажатия клавиш
-local UserInputService = game:GetService("UserInputService")
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     -- Проверяем, что нажат правый Alt (KeyCode.RightAlt)
     if input.KeyCode == Enum.KeyCode.RightAlt and not gameProcessed then
@@ -88,6 +127,12 @@ while scriptRunning do
                 -- Наводим камеру на часть тела
                 if targetPart then
                     aimAtPart(targetPart)
+
+                    -- Проверяем видимость цели и точность прицеливания
+                    if isTargetVisible(targetPart) and isAimingAtHead(targetPart) then
+                        -- Нажимаем ЛКМ (левая кнопка мыши)
+                        mouse1click()
+                    end
                 else
                     break -- Прерываем, если часть тела больше не существует
                 end
@@ -97,6 +142,9 @@ while scriptRunning do
 
             print("Игрок " .. nearestPlayer.Name .. " больше не является целью.")
         end
+    else
+        -- Если ближайший игрок не найден, направляем камеру вниз
+        camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position - Vector3.new(0, 10, 0))
     end
 
     task.wait() -- Используем task.wait() для минимальной задержки
